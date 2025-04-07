@@ -52,4 +52,5 @@ if user_input:
     optimized = optimize_prompt(user_input)
     gpt_response = ask_gpt(optimized)
     st.session_state.chat_history.append({"user": user_input, "gpt": gpt_response})
-    st.experimental_rerun()
+    st.rerun()
+
