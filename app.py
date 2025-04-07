@@ -1,101 +1,79 @@
 import streamlit as st
-from PIL import Image
 from utils import optimize_prompt, ask_gpt
-from streamlit_extras.switch_page_button import switch_page
-import base64
 
-# Seiteneinstellungen
-st.set_page_config(page_title="CORE Pre-MVP", page_icon="🤖", layout="wide")
-
-# CSS für globale Schriftart und optische Anpassungen
+st.set_page_config(page_title="Intellivence Pre-MVP", layout="wide")
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Lexend&display=swap');
-
-    html, body, [class*="css"]  {
+    html, body, [class*="css"] {
         font-family: 'Lexend', sans-serif;
     }
-
-    .chat-entry {
-        border-radius: 12px;
-        padding: 8px;
-        margin: 6px 0;
-        background-color: #1e1e1e;
-    }
-
-    .icon-button {
-        background-color: #262730;
-        border: none;
-        border-radius: 6px;
-        padding: 6px;
-        margin: 2px;
+    .bottom-bar {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
         display: flex;
-        align-items: center;
-        gap: 8px;
+        gap: 0.5rem;
+    }
+    .chat-box {
+        min-height: 400px;
+        margin-bottom: 4rem;
+    }
+    .menu-button {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 10;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Session State initialisieren
+# Menü oben
+with st.expander("≡ Menü", expanded=False):
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    with col1:
+        st.button("👤 Profil")
+    with col2:
+        st.button("⭐ Gespeichert")
+    with col3:
+        st.button("📅 Kalender")
+    with col4:
+        st.button("💬 Nachrichten")
+    with col5:
+        st.button("❗ Feedback")
+    with col6:
+        st.button("❓ Hilfe")
+
+# Titel
+st.markdown("## Hallo, wie kann ich dir helfen?")
+st.markdown("Dies ist ein funktionaler MVP mit optischen Platzhaltern.")
+
+# Chatverlauf
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "is_generating" not in st.session_state:
-    st.session_state.is_generating = False
 
-# Menüleiste (von oben nach unten)
-with st.expander("☰ Menü", expanded=False):
-    cols = st.columns(6)
-    with cols[0]:
-        st.link_button("🧑 Profil", "#", type="secondary")
-    with cols[1]:
-        st.link_button("⭐ Gespeichert", "#", type="secondary")
-    with cols[2]:
-        st.link_button("📅 Kalender", "#", type="secondary")
-    with cols[3]:
-        st.link_button("💬 Nachrichten", "#", type="secondary")
-    with cols[4]:
-        st.link_button("❗ Feedback", "#", type="secondary")
-    with cols[5]:
-        st.link_button("❓ Hilfe", "#", type="secondary")
-
-# Titel und Untertitel
-st.markdown("""
-    <h1 style='text-align: center;'>Hallo, wie kann ich dir helfen?</h1>
-    <p style='text-align: center;'>Dies ist ein funktionaler MVP mit optischen Platzhaltern.</p>
-""", unsafe_allow_html=True)
-
-# Chatverlauf anzeigen
 for entry in st.session_state.chat_history:
-    st.markdown(f"<div class='chat-entry'><strong>Du:</strong> {entry['user']}<br><strong>CORE:</strong> {entry['gpt']}</div>", unsafe_allow_html=True)
+    st.markdown(f"**Du:** {entry['user']}")
+    st.markdown(f"**CORE:** {entry['gpt']}")
 
-st.markdown("""<br><br><br><br><br><br>""")
-
-# Eingabezeile unten zentriert
+# Texteingabe unten mittig
 with st.container():
-    col1, col2, col3 = st.columns([0.05, 0.8, 0.15])
+    st.markdown("""<div class='bottom-bar'>""", unsafe_allow_html=True)
+    user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed", key="input")
+    col1, col2 = st.columns([0.1, 0.9])
     with col1:
-        st.button("🎤", help="Spracheingabe (optisch)")
+        st.button("...", help="Uploadsymbol (optisch)")
     with col2:
-        user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed")
-    with col3:
-        if st.session_state.is_generating:
-            stop = st.button("⏹️")
-            if stop:
-                st.session_state.is_generating = False
-        else:
-            send = st.button("➤")
-
-# Verarbeiten der Eingabe
-if user_input and not st.session_state.is_generating:
-    st.session_state.is_generating = True
-    optimized = optimize_prompt(user_input)
-    try:
-        gpt_response = ask_gpt(optimized)
-    except Exception as e:
-        gpt_response = f"[Fehler bei GPT]:\n{str(e)}"
-
-    st.session_state.chat_history.append({"user": user_input, "gpt": gpt_response})
-    st.experimental_rerun()
-
-# Hinweis auf Teststatus
-st.markdown("""<br><sub>⚠️ Dies ist ein MVP. Viele Elemente sind rein visuell.</sub>""")
+        if st.button("⏎" if not st.session_state.get("is_typing") else "⏹"):
+            if not st.session_state.get("is_typing"):
+                if user_input.strip():
+                    st.session_state.is_typing = True
+                    optimized = optimize_prompt(user_input)
+                    gpt_response = ask_gpt(optimized)
+                    st.session_state.chat_history.append({"user": user_input, "gpt": gpt_response})
+                    st.session_state.input = ""
+                    st.session_state.is_typing = False
+            else:
+                st.session_state.is_typing = False  # Sofort stoppen
+    st.markdown("""</div>""", unsafe_allow_html=True)
