@@ -1,4 +1,2 @@
 streamlit
 openai
-streamlit-option-menu
-openai>=1.0.0
