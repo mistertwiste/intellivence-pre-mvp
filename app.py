@@ -1,137 +1,109 @@
 import streamlit as st
-from openai import OpenAI
+import openai
+import os
+from streamlit_option_menu import option_menu
 
-# Seiteneinstellungen
-st.set_page_config(page_title="Hallo", layout="wide")
+# API-Key aus Umgebungsvariable laden
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Styles
+st.set_page_config(layout="wide")
+
+# Custom CSS im Stil von lovable.dev
 st.markdown("""
-    <style>
-        html, body, [class*="css"]  {
-            font-family: 'Lexend', sans-serif;
-        }
-        .chat-text {
-            font-family: monospace;
-        }
-        .bottom-bar {
-            position: fixed;
-            bottom: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            background-color: #1f1f1f;
-            padding: 0.5rem;
-            border-radius: 8px;
-        }
-        .bottom-bar input {
-            flex-grow: 1;
-            height: 36px;
-            border-radius: 6px;
-            padding: 0 10px;
-            border: none;
-            background-color: #2c2c2c;
-            color: white;
-        }
-        .bottom-button {
-            background-color: #444;
-            border: none;
-            padding: 0.5rem 0.8rem;
-            border-radius: 6px;
-            color: white;
-            font-size: 18px;
-        }
-        .top-menu {
-            position: fixed;
-            top: 0.5rem;
-            left: 0.5rem;
-            background-color: #1e1e1e;
-            padding: 0.7rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            z-index: 10;
-        }
-        .top-menu-toggle {
-            position: fixed;
-            top: 0.5rem;
-            left: 0.5rem;
-            z-index: 11;
-            background-color: #333;
-            padding: 0.4rem 0.6rem;
-            border-radius: 6px;
-            color: white;
-            font-size: 18px;
-            border: none;
-        }
-        .top-menu button {
-            display: block;
-            width: 100%;
-            margin-bottom: 0.5rem;
-            text-align: left;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 16px;
-        }
-    </style>
+<style>
+body {
+    background-color: #0d0d0d;
+    font-family: 'Lexend', sans-serif;
+    color: #f2f2f2;
+}
+input, textarea {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+}
+.stButton > button {
+    background-color: #1f1f1f;
+    color: #ffffff;
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    border: none;
+    transition: 0.2s ease;
+}
+.stButton > button:hover {
+    background-color: #333;
+}
+.sidebar .sidebar-content {
+    background-color: #0d0d0d;
+}
+.stTextInput > div > div > input {
+    padding: 0.75rem;
+    font-size: 16px;
+}
+.chat-bubble {
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    background-color: #1a1a1a;
+    border-radius: 10px;
+}
+</style>
 """, unsafe_allow_html=True)
 
-# Init OpenAI
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-# Session States
+# Chatverlauf initialisieren
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "awaiting_response" not in st.session_state:
-    st.session_state.awaiting_response = False
-if "menu_open" not in st.session_state:
-    st.session_state.menu_open = False
 
-# Menü Toggle Button
-if st.button("≡", key="menu_toggle", help="Menü öffnen"):
-    st.session_state.menu_open = not st.session_state.menu_open
+# Menü Toggle oben links
+with st.container():
+    with st.expander("≡ Menü", expanded=False):
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        with col1:
+            st.button("👤\nProfil")
+        with col2:
+            st.button("★\nGespeichert")
+        with col3:
+            st.button("📅\nKalender")
+        with col4:
+            st.button("💬\nNachrichten")
+        with col5:
+            st.button("!\nFeedback")
+        with col6:
+            st.button("?\nHilfe")
 
-# Menü Dropdown oben
-if st.session_state.menu_open:
-    st.markdown("""
-        <div class='top-menu'>
-            <button>👤 Profil</button>
-            <button>★ Gespeichert</button>
-            <button>📅 Kalender</button>
-            <button>✉ Nachrichten</button>
-            <button>! Feedback</button>
-            <button>? Hilfe</button>
-        </div>
-    """, unsafe_allow_html=True)
+# Titelbereich
+st.markdown("<h1 style='text-align: center;'>Hallo, wie kann ich dir helfen?</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; opacity: 0.7;'>Dies ist ein funktionaler MVP mit optischen Platzhaltern.</p>", unsafe_allow_html=True)
 
-# Haupttitel
-st.markdown("# Hallo, wie kann ich dir helfen?")
+# Chat-Ausgabe
+for user_input, response in st.session_state.chat_history:
+    st.markdown(f"<div class='chat-bubble'><strong>Du:</strong> {user_input}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='chat-bubble'><strong>CORE:</strong> {response}</div>", unsafe_allow_html=True)
 
-# Chatverlauf anzeigen
-for entry in st.session_state.chat_history:
-    st.markdown(f"**Du:** {entry['user']}", unsafe_allow_html=True)
-    st.markdown(f"<div class='chat-text'><strong>CORE:</strong> {entry['gpt']}</div>", unsafe_allow_html=True)
-
-# Fixierte Eingabezeile unten
-st.markdown("""
-<div class="bottom-bar">
-    <button class="bottom-button" disabled>🎤</button>
-    <input name="user_input" placeholder="Schreib etwas..." />
-    <button class="bottom-button" disabled>...</button>
-</div>
-""", unsafe_allow_html=True)
-
-# Eingabeverarbeitung
-user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed")
-if st.button("⏎ Senden", key="send") and user_input:
-    optimized = optimize_prompt(user_input)
-    gpt_response = ask_gpt(optimized)
-    st.session_state.chat_history.append({"user": user_input, "gpt": gpt_response})
-    st.rerun()
-
-if st.session_state.awaiting_response:
-    if st.button("⏹ Stopp", key="stop"):
-        st.stop()
+# Eingabefeld unten zentriert
+with st.container():
+    st.markdown("<div style='position: fixed; bottom: 2rem; left: 0; right: 0; margin: auto; width: 60%;'>", unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([0.1, 0.7, 0.1, 0.1])
+    with col1:
+        st.button("🎤")  # Spracheingabe (optisch)
+    with col2:
+        user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed")
+    with col3:
+        st.button("⋯")  # Upload Button (optisch)
+    with col4:
+        if st.session_state.get("awaiting_response", False):
+            if st.button("⏹️"):
+                st.session_state.awaiting_response = False
+        else:
+            if st.button("⬆️") and user_input:
+                try:
+                    st.session_state.awaiting_response = True
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": user_input}]
+                    )
+                    answer = response.choices[0].message.content
+                except Exception as e:
+                    answer = f"[Fehler bei GPT]: {e}"
+                st.session_state.chat_history.append((user_input, answer))
+                st.session_state.awaiting_response = False
+                st.experimental_rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
