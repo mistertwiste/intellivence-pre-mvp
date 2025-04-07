@@ -15,15 +15,14 @@ st.markdown("""
         }
         .bottom-bar {
             position: fixed;
-            bottom: 2rem;
-            left: 0;
-            right: 0;
-            width: 100%;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 0.5rem;
-            padding: 0 2rem;
         }
         .bottom-bar input {
             flex-grow: 1;
@@ -42,10 +41,20 @@ st.markdown("""
             color: white;
             font-size: 18px;
         }
-        .sidebar-icons button {
+        .top-dropdown {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background-color: #1e1e1e;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .top-dropdown button {
+            display: block;
             width: 100%;
+            margin-bottom: 0.5rem;
             text-align: left;
-            margin-bottom: 1rem;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -58,39 +67,30 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "awaiting_response" not in st.session_state:
     st.session_state.awaiting_response = False
+if "menu_open" not in st.session_state:
+    st.session_state.menu_open = False
 
-# Prompt-Optimierung
+# Menü-Toggle oben links
+if st.button("≡", key="menu_toggle"):
+    st.session_state.menu_open = not st.session_state.menu_open
 
-def optimize_prompt(user_input):
-    return f"Optimierter Prompt: {user_input.strip().capitalize()}?"
+# Manuelles Dropdown-Menü oben links
+if st.session_state.menu_open:
+    with st.container():
+        st.markdown("""
+            <div class='top-dropdown'>
+        """, unsafe_allow_html=True)
+        st.button("👤 Profil")
+        st.button("★ Gespeichert")
+        st.button("📅 Kalender")
+        st.button("✉ Nachrichten")
+        st.button("! Feedback")
+        st.button("? Hilfe")
+        st.markdown("""
+            </div>
+        """, unsafe_allow_html=True)
 
-# GPT-Kommunikation
-
-def ask_gpt(optimized_prompt):
-    st.session_state.awaiting_response = True
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": optimized_prompt}]
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"[Fehler bei GPT]: {e}"
-    finally:
-        st.session_state.awaiting_response = False
-
-# Sidebar Menü (einfach, ohne Titel)
-with st.sidebar:
-    st.markdown("<div class='sidebar-icons'>", unsafe_allow_html=True)
-    st.button("👤 Profil")
-    st.button("★ Gespeichert")
-    st.button("📅 Kalender")
-    st.button("✉ Nachrichten")
-    st.button("! Feedback")
-    st.button("? Hilfe")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# Überschrift (keine Unterzeile mehr)
+# Überschrift (ohne Unterzeile)
 st.markdown("# Hallo, wie kann ich dir helfen?")
 
 # Chatverlauf
@@ -106,8 +106,10 @@ st.markdown("""
         <input name="user_input" placeholder="Schreib etwas..." autocomplete="off" />
     </form>
     <button class="bottom-button" disabled>...</button>
+</div>
 """, unsafe_allow_html=True)
 
+# Dynamischer Button (⏎ oder ⏹)
 if st.session_state.awaiting_response:
     if st.button("⏹ Stopp", key="stop"):
         st.stop()
