@@ -105,5 +105,5 @@ with st.container():
                     answer = f"[Fehler bei GPT]: {e}"
                 st.session_state.chat_history.append((user_input, answer))
                 st.session_state.awaiting_response = False
-                st.experimental_rerun()
+                st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
