@@ -1,10 +1,10 @@
 import streamlit as st
 from openai import OpenAI
 
-# Layout & Seitenkonfiguration
+# Page setup
 st.set_page_config(page_title="Hallo", layout="wide")
 
-# Schriftstil global setzen (außer im Chatbereich)
+# Fonts & Style
 st.markdown("""
     <style>
         html, body, [class*="css"]  {
@@ -13,21 +13,31 @@ st.markdown("""
         .chat-text {
             font-family: monospace;
         }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+        .sidebar-icons button {
+            margin-bottom: 1rem;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# OpenAI Client initialisieren (API-Key über Secrets setzen)
+# Init OpenAI
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-
+# Session
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Prompt-Optimierer (Platzhalter)
+# Optimizer (Dummy)
 def optimize_prompt(user_input):
     return f"Optimierter Prompt: {user_input.strip().capitalize()}?"
 
-# GPT-Anfrage
+# GPT
 
 def ask_gpt(optimized_prompt):
     try:
@@ -39,43 +49,53 @@ def ask_gpt(optimized_prompt):
     except Exception as e:
         return f"[Fehler bei GPT]: {e}"
 
-# --- Navigation oben (Dropdown Style) ---
-with st.expander("≡ Menü", expanded=True):
-    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
-    with col1:
-        st.button("👤")  # Profil
-    with col2:
-        st.button("+")  # Neuer Chat
-    with col3:
-        st.button("📅")  # Kalender
-    with col4:
-        st.button("★")  # Gespeichert
-    with col5:
-        st.button("✉")  # Nachrichten
-    with col6:
-        st.button("! ")  # Feedback
-    with col7:
-        st.button("?")  # Hilfe
+# Sidebar left menu
+with st.sidebar:
+    st.markdown("## ≡ Menü")
+    st.markdown("<div class='sidebar-icons'>", unsafe_allow_html=True)
+    st.button("👤")  # Profil
+    st.button("★")  # Gespeichert
+    st.button("📅")  # Kalender
+    st.button("✉")  # Nachrichten
+    st.button("!")  # Feedback
+    st.button("?")  # Hilfe
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# --- Überschrift / App Titel ---
+# Title & instructions
 st.markdown("# Hallo, wie kann ich dir helfen?")
 st.markdown("Dies ist ein funktionaler MVP mit optischen Platzhaltern.")
 
-# --- Chatverlauf ---
+# Chatverlauf
 for entry in st.session_state.chat_history:
     st.markdown(f"**Du:** {entry['user']}", unsafe_allow_html=True)
     st.markdown(f"<div class='chat-text'><strong>CORE:</strong> {entry['gpt']}</div>", unsafe_allow_html=True)
 
-# --- Eingabezeile (kompakter) ---
-col1, col2, col3 = st.columns([0.1, 0.4, 0.1])
-with col1:
-    st.button("🎤")  # Spracheingabe (optisch)
-with col2:
-    user_input = st.text_input("", placeholder="Frag mich etwas...", label_visibility="collapsed")
-with col3:
-    st.button("...")  # Uploadsymbol (optisch)
+# Eingabebereich unten zentriert
+with st.container():
+    st.markdown("""
+    <div class="input-container">
+        <button disabled>🎤</button>
+        <input id="user_input" name="user_input" placeholder="Schreib etwas..." style="width: 400px; height: 35px; border-radius: 6px; padding: 5px;" />
+        <button disabled>⤴</button>
+    </div>
+    <script>
+    const inputBox = window.parent.document.querySelector('#user_input');
+    inputBox.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const input = inputBox.value;
+            fetch('/_stcore/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_input: input })
+            });
+        }
+    });
+    </script>
+    """, unsafe_allow_html=True)
 
-# --- Verarbeiten ---
+# Backup-Textfeld zum Verarbeiten in Streamlit direkt
+user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed")
+
 if user_input:
     optimized = optimize_prompt(user_input)
     gpt_response = ask_gpt(optimized)
