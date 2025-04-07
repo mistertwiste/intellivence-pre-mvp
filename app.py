@@ -13,15 +13,24 @@ st.markdown("""
         .chat-text {
             font-family: monospace;
         }
-        .input-container {
+        .input-row {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 0.5rem;
             margin-top: 2rem;
+            gap: 0.5rem;
         }
-        .sidebar-icons button {
-            margin-bottom: 1rem;
+        .input-box {
+            width: 400px;
+            height: 35px;
+            border-radius: 6px;
+            padding: 5px;
+        }
+        .top-button {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 100;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -29,17 +38,21 @@ st.markdown("""
 # Init OpenAI
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Session
+# Session Init
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "awaiting_response" not in st.session_state:
+    st.session_state.awaiting_response = False
 
-# Optimizer (Dummy)
+# Optimizer
+
 def optimize_prompt(user_input):
     return f"Optimierter Prompt: {user_input.strip().capitalize()}?"
 
-# GPT
+# GPT-Kommunikation
 
 def ask_gpt(optimized_prompt):
+    st.session_state.awaiting_response = True
     try:
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -48,56 +61,46 @@ def ask_gpt(optimized_prompt):
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"[Fehler bei GPT]: {e}"
+    finally:
+        st.session_state.awaiting_response = False
 
-# Sidebar left menu
-with st.sidebar:
-    st.markdown("## ≡ Menü")
-    st.markdown("<div class='sidebar-icons'>", unsafe_allow_html=True)
-    st.button("👤")  # Profil
-    st.button("★")  # Gespeichert
-    st.button("📅")  # Kalender
-    st.button("✉")  # Nachrichten
-    st.button("!")  # Feedback
-    st.button("?")  # Hilfe
-    st.markdown("</div>", unsafe_allow_html=True)
+# --- Dropdown-Menü oben links ---
+menu_open = st.sidebar.toggle("≡ Menü", value=True)
+if menu_open:
+    st.sidebar.markdown("## Navigation")
+    st.sidebar.button("👤 Profil")
+    st.sidebar.button("★ Gespeichert")
+    st.sidebar.button("📅 Kalender")
+    st.sidebar.button("✉ Nachrichten")
+    st.sidebar.button("! Feedback")
+    st.sidebar.button("? Hilfe")
 
-# Title & instructions
+# --- Haupttitel ---
 st.markdown("# Hallo, wie kann ich dir helfen?")
 st.markdown("Dies ist ein funktionaler MVP mit optischen Platzhaltern.")
 
-# Chatverlauf
+# --- Chatverlauf ---
 for entry in st.session_state.chat_history:
     st.markdown(f"**Du:** {entry['user']}", unsafe_allow_html=True)
     st.markdown(f"<div class='chat-text'><strong>CORE:</strong> {entry['gpt']}</div>", unsafe_allow_html=True)
 
-# Eingabebereich unten zentriert
-with st.container():
-    st.markdown("""
-    <div class="input-container">
+# --- Eingabefeld unten ---
+st.markdown("""
+    <div class="input-row">
         <button disabled>🎤</button>
-        <input id="user_input" name="user_input" placeholder="Schreib etwas..." style="width: 400px; height: 35px; border-radius: 6px; padding: 5px;" />
-        <button disabled>⤴</button>
-    </div>
-    <script>
-    const inputBox = window.parent.document.querySelector('#user_input');
-    inputBox.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            const input = inputBox.value;
-            fetch('/_stcore/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_input: input })
-            });
-        }
-    });
-    </script>
-    """, unsafe_allow_html=True)
+        <form action="" method="post">
+            <input name="user_input" class="input-box" placeholder="Schreib etwas...">
+        </form>
+""", unsafe_allow_html=True)
 
-# Backup-Textfeld zum Verarbeiten in Streamlit direkt
-user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed")
-
-if user_input:
-    optimized = optimize_prompt(user_input)
-    gpt_response = ask_gpt(optimized)
-    st.session_state.chat_history.append({"user": user_input, "gpt": gpt_response})
-    st.rerun()
+# Sende-/Stopp-Button
+if st.session_state.awaiting_response:
+    if st.button("⏹ Stopp"):
+        st.stop()
+else:
+    user_input = st.text_input("", placeholder="Schreib etwas...", label_visibility="collapsed", key="textinput")
+    if st.button("⏎ Senden") and user_input:
+        optimized = optimize_prompt(user_input)
+        gpt_response = ask_gpt(optimized)
+        st.session_state.chat_history.append({"user": user_input, "gpt": gpt_response})
+        st.rerun()
