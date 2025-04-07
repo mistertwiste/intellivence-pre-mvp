@@ -1,16 +1,17 @@
-import openai
 import os
+from openai import OpenAI
 
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Sicher in deiner Umgebung setzen
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def optimize_prompt(prompt: str) -> str:
-    return prompt.strip()
+def optimize_prompt(user_input):
+    return f"Formuliere die folgende Frage präziser und professionell: {user_input}"
 
-def ask_gpt(prompt: str) -> str:
-    response = openai.ChatCompletion.create(
+def ask_gpt(prompt):
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=500
+        messages=[
+            {"role": "system", "content": "Du bist ein hilfreicher Assistent."},
+            {"role": "user", "content": prompt}
+        ]
     )
     return response.choices[0].message.content.strip()
